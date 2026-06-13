@@ -58,6 +58,7 @@ For "search by text", layer ``QdrantEmbeddings`` over any backend with a
 - ``OptimizersConfig``
 - ``WalConfig``
 - ``ShardingMethod``
+- ``StrictModeConfig``
 - ``MultivectorComparator``
 - ``SparseVectorParams``
 - ``SparseModifier``
@@ -98,6 +99,11 @@ For "search by text", layer ``QdrantEmbeddings`` over any backend with a
 - ``Mmr``
 - ``Fusion``
 - ``Prefetch``
+- ``Formula``
+- ``Expression``
+- ``DecayParams``
+- ``RelevanceFeedbackInput``
+- ``FeedbackItem``
 - ``SearchParams``
 - ``QueryRequest``
 - ``OrderBy``

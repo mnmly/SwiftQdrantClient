@@ -145,6 +145,39 @@ final class QdrantParityIntegrationTests: XCTestCase {
         try await c.close()
     }
 
+    /// Formula re-scoring query + strict-mode collection config, live.
+    func testFormulaAndStrictModeLive() async throws {
+        try skipUnlessIntegration()
+        let c = try QdrantClient(host: "localhost")
+        let name = "swift_formula"
+        _ = try? await c.deleteCollection(name)
+        _ = try await c.createCollection(
+            name: name,
+            vectors: .single(.init(size: 3, distance: .cosine)),
+            strictModeConfig: .init(enabled: true, maxQueryLimit: 1000))
+        try await c.upsert(collection: name, points: [
+            .init(id: 1, vector: [1, 0, 0], payload: ["boost": 10.0]),
+            .init(id: 2, vector: [0.9, 0.1, 0], payload: ["boost": 0.0]),
+        ])
+
+        // Prefetch nearest, then re-score by (score + boost) so point 1 wins decisively.
+        let hits = try await c.query(
+            collection: name,
+            query: .formula(Formula(.sum([.variable("$score"), .variable("boost")]), defaults: ["boost": 0.0])),
+            using: nil,
+            prefetch: [Prefetch(query: .nearest(.dense([1, 0, 0])), limit: 10)],
+            filter: nil, params: nil, scoreThreshold: nil, limit: 2, offset: 0,
+            withPayload: true, withVectors: false)
+        XCTAssertEqual(hits.first?.id, .int(1))
+
+        // Update strict-mode limits live.
+        let updated = try await c.updateCollection(name: name, strictModeConfig: .init(enabled: true, maxQueryLimit: 500))
+        XCTAssertTrue(updated)
+
+        _ = try await c.deleteCollection(name)
+        try await c.close()
+    }
+
     /// Migrate a collection from a remote (gRPC) client into an in-memory local client.
     func testMigrateRemoteToLocal() async throws {
         try skipUnlessIntegration()

@@ -26,7 +26,8 @@ public protocol QdrantClientProtocol: Sendable {
         shardNumber: UInt32?,
         shardingMethod: ShardingMethod?,
         replicationFactor: UInt32?,
-        writeConsistencyFactor: UInt32?
+        writeConsistencyFactor: UInt32?,
+        strictModeConfig: StrictModeConfig?
     ) async throws -> Bool
 
     func collectionExists(_ name: String) async throws -> Bool
@@ -86,7 +87,7 @@ public protocol QdrantClientProtocol: Sendable {
     func searchMatrixOffsets(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> SearchMatrixOffsets
 
     // MARK: Collections (extended)
-    func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?) async throws -> Bool
+    func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?, strictModeConfig: StrictModeConfig?) async throws -> Bool
     func getCollections() async throws -> [String]
     func updateAliases(_ actions: [AliasOperation]) async throws -> Bool
     func listCollectionAliases(_ collection: String) async throws -> [AliasDescription]
@@ -149,7 +150,7 @@ extension QdrantClientProtocol {
             vectors: .single(.init(size: size, distance: distance)),
             sparseVectors: nil, quantizationConfig: nil, hnswConfig: nil, optimizersConfig: nil,
             walConfig: nil, onDiskPayload: nil, shardNumber: nil, shardingMethod: nil,
-            replicationFactor: nil, writeConsistencyFactor: nil)
+            replicationFactor: nil, writeConsistencyFactor: nil, strictModeConfig: nil)
     }
 
     /// Nearest-neighbour query by a dense vector.
@@ -179,7 +180,7 @@ extension QdrantClientProtocol {
             name: name, vectors: vectors, sparseVectors: sparseVectors,
             quantizationConfig: nil, hnswConfig: nil, optimizersConfig: nil,
             walConfig: nil, onDiskPayload: nil, shardNumber: nil, shardingMethod: nil,
-            replicationFactor: nil, writeConsistencyFactor: nil)
+            replicationFactor: nil, writeConsistencyFactor: nil, strictModeConfig: nil)
     }
 
     /// Upload points in batches (chunked upsert).
@@ -249,7 +250,7 @@ extension QdrantClientProtocol {
             _ = try await dest.createCollection(
                 name: name, vectors: cfg, sparseVectors: nil, quantizationConfig: nil,
                 hnswConfig: nil, optimizersConfig: nil, walConfig: nil, onDiskPayload: nil,
-                shardNumber: nil, shardingMethod: nil, replicationFactor: nil, writeConsistencyFactor: nil)
+                shardNumber: nil, shardingMethod: nil, replicationFactor: nil, writeConsistencyFactor: nil, strictModeConfig: nil)
             // Copy points by scrolling.
             var offset: PointID? = nil
             repeat {
@@ -303,7 +304,7 @@ extension QdrantClientProtocol {
     public func queryGroups(collection: String, groupBy: String, query: Query?, using: String?, prefetch: [Prefetch], filter: Filter?, params: SearchParams?, scoreThreshold: Float?, limit: UInt64, groupSize: UInt64, withPayload: WithPayload, withVectors: WithVectors) async throws -> [PointGroup] { throw QdrantError.unsupported("queryGroups") }
     public func searchMatrixPairs(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> [SearchMatrixPair] { throw QdrantError.unsupported("searchMatrixPairs") }
     public func searchMatrixOffsets(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> SearchMatrixOffsets { throw QdrantError.unsupported("searchMatrixOffsets") }
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?) async throws -> Bool { throw QdrantError.unsupported("updateCollection") }
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?, strictModeConfig: StrictModeConfig?) async throws -> Bool { throw QdrantError.unsupported("updateCollection") }
     public func updateAliases(_ actions: [AliasOperation]) async throws -> Bool { throw QdrantError.unsupported("updateAliases") }
     public func listCollectionAliases(_ collection: String) async throws -> [AliasDescription] { throw QdrantError.unsupported("listCollectionAliases") }
     public func listAliases() async throws -> [AliasDescription] { throw QdrantError.unsupported("listAliases") }

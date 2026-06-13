@@ -64,3 +64,51 @@ final class QdrantConfigModelTests: XCTestCase {
         XCTAssertEqual(json["quantization_config"]?["scalar"]?["quantile"]?.doubleValue ?? 0, 0.95, accuracy: 1e-6)
     }
 }
+
+/// Formula / relevance-feedback / strict-mode model encoding.
+final class QdrantAdvancedQueryTests: XCTestCase {
+    func testFormulaProtoAndJSON() {
+        let formula = Formula(
+            .sum([.variable("$score"), .mult([.constant(0.5), .condition(.match("vip", true))])]),
+            defaults: ["$score": 0.0])
+        if case .formula(let f) = Query.formula(formula).proto.variant {
+            XCTAssertTrue(f.hasExpression)
+            if case .sum(let s)? = f.expression.variant {
+                XCTAssertEqual(s.sum.count, 2)
+            } else { XCTFail("expected sum") }
+        } else { XCTFail("expected formula") }
+
+        let json = Query.formula(formula).json
+        XCTAssertNotNil(json["formula"])
+        XCTAssertNotNil(json["defaults"])
+    }
+
+    func testDecayExpressionProto() {
+        let expr = Expression.gaussDecay(.init(x: .variable("dist"), target: .constant(0), scale: 10, midpoint: 0.5))
+        if case .gaussDecay(let d)? = expr.proto.variant {
+            XCTAssertEqual(d.scale, 10, accuracy: 1e-6)
+        } else { XCTFail("expected gauss decay") }
+    }
+
+    func testRelevanceFeedbackProto() {
+        let rf = RelevanceFeedbackInput(target: .dense([0.1, 0.2]), feedback: [
+            .init(example: .id(1), score: 1.0), .init(example: .id(2), score: -1.0),
+        ])
+        if case .relevanceFeedback(let r) = Query.relevanceFeedback(rf).proto.variant {
+            XCTAssertEqual(r.feedback.count, 2)
+            XCTAssertEqual(r.feedback.first?.score ?? 0, Float(1.0), accuracy: 1e-6)
+        } else { XCTFail("expected relevance feedback") }
+    }
+
+    func testStrictModeConfigProtoAndJSON() {
+        let sm = StrictModeConfig(enabled: true, maxQueryLimit: 100, searchAllowExact: false,
+                                  maxCollectionVectorSizeBytes: 1_000_000)
+        let proto = sm.proto
+        XCTAssertTrue(proto.enabled)
+        XCTAssertEqual(proto.maxQueryLimit, 100)
+        XCTAssertFalse(proto.searchAllowExact)
+        let json = sm.json
+        XCTAssertEqual(json["enabled"]?.boolValue, true)
+        XCTAssertEqual(json["max_query_limit"]?.intValue, 100)
+    }
+}

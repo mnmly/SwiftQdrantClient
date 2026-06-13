@@ -415,6 +415,8 @@ extension Query {
             return .object(["order_by": .object(ob)])
         case .fusion(let f): return .object(["fusion": .string(f == .rrf ? "rrf" : "dbsf")])
         case .sampleRandom: return .object(["sample": .string("random")])
+        case .formula(let f): return f.json
+        case .relevanceFeedback(let r): return .object(["relevance_feedback": r.json])
         }
     }
 }

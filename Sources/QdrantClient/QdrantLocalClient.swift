@@ -50,7 +50,8 @@ public actor QdrantLocalClient: QdrantClientProtocol {
         shardNumber: UInt32? = nil,
         shardingMethod: ShardingMethod? = nil,
         replicationFactor: UInt32? = nil,
-        writeConsistencyFactor: UInt32? = nil
+        writeConsistencyFactor: UInt32? = nil,
+        strictModeConfig: StrictModeConfig? = nil
     ) async throws -> Bool {
         var params: [String: (size: UInt64, distance: Distance)] = [:]
         switch vectors {
@@ -272,6 +273,8 @@ public actor QdrantLocalClient: QdrantClientProtocol {
             preSorted = true
         case .fusion:
             throw QdrantError.unsupported("fusion queries require prefetch, not supported in local mode")
+        case .formula, .relevanceFeedback:
+            throw QdrantError.unsupported("formula / relevance-feedback queries are server-only")
         }
 
         // Rank, threshold, page.
@@ -518,7 +521,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
     }
 
     @discardableResult
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil) async throws -> Bool {
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil, strictModeConfig: StrictModeConfig? = nil) async throws -> Bool {
         _ = try get(name)
         return true
     }

@@ -113,6 +113,10 @@ public indirect enum Query: Sendable {
     case fusion(Fusion)
     /// Randomly sample points.
     case sampleRandom
+    /// Re-score results with an arbitrary formula expression.
+    case formula(Formula)
+    /// Refine a target query using scored feedback examples.
+    case relevanceFeedback(RelevanceFeedbackInput)
 
     var proto: Qdrant_Query {
         var q = Qdrant_Query()
@@ -143,6 +147,10 @@ public indirect enum Query: Sendable {
             q.variant = .fusion(fusion.proto)
         case .sampleRandom:
             q.variant = .sample(.random)
+        case .formula(let f):
+            q.variant = .formula(f.proto)
+        case .relevanceFeedback(let r):
+            q.variant = .relevanceFeedback(r.proto)
         }
         return q
     }

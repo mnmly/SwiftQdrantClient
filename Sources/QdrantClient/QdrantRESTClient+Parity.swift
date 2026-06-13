@@ -129,11 +129,12 @@ extension QdrantRESTClient {
     // MARK: - Collections (extended)
 
     @discardableResult
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil) async throws -> Bool {
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil, strictModeConfig: StrictModeConfig? = nil) async throws -> Bool {
         var body: [String: JSONValue] = [:]
         if let optimizersConfig { body["optimizers_config"] = optimizersConfig.json }
         if let hnswConfig { body["hnsw_config"] = hnswConfig.json }
         if let quantizationConfig { body["quantization_config"] = quantizationConfig.json }
+        if let strictModeConfig { body["strict_mode_config"] = strictModeConfig.json }
         return (try await send(.patch, "/collections/\(name)", .object(body))).boolValue ?? true
     }
 

@@ -42,7 +42,8 @@ public actor QdrantRESTClient: QdrantClientProtocol {
         shardNumber: UInt32? = nil,
         shardingMethod: ShardingMethod? = nil,
         replicationFactor: UInt32? = nil,
-        writeConsistencyFactor: UInt32? = nil
+        writeConsistencyFactor: UInt32? = nil,
+        strictModeConfig: StrictModeConfig? = nil
     ) async throws -> Bool {
         var body: [String: JSONValue] = [:]
         switch vectors {
@@ -59,6 +60,7 @@ public actor QdrantRESTClient: QdrantClientProtocol {
         if let shardingMethod { body["sharding_method"] = .string(shardingMethod.restValue) }
         if let replicationFactor { body["replication_factor"] = .int(Int64(replicationFactor)) }
         if let writeConsistencyFactor { body["write_consistency_factor"] = .int(Int64(writeConsistencyFactor)) }
+        if let strictModeConfig { body["strict_mode_config"] = strictModeConfig.json }
         let result = try await send(.put, "/collections/\(name)", .object(body))
         return result.boolValue ?? true
     }

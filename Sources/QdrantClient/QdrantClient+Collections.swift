@@ -18,7 +18,8 @@ extension QdrantClient {
         shardNumber: UInt32? = nil,
         shardingMethod: ShardingMethod? = nil,
         replicationFactor: UInt32? = nil,
-        writeConsistencyFactor: UInt32? = nil
+        writeConsistencyFactor: UInt32? = nil,
+        strictModeConfig: StrictModeConfig? = nil
     ) async throws -> Bool {
         var request = Qdrant_CreateCollection()
         request.collectionName = name
@@ -37,6 +38,7 @@ extension QdrantClient {
         if let shardingMethod { request.shardingMethod = shardingMethod.proto }
         if let replicationFactor { request.replicationFactor = replicationFactor }
         if let writeConsistencyFactor { request.writeConsistencyFactor = writeConsistencyFactor }
+        if let strictModeConfig { request.strictModeConfig = strictModeConfig.proto }
 
         let response = try await call { try await collections.create(request) }
         return response.result
@@ -56,7 +58,8 @@ extension QdrantClient {
         name: String,
         optimizersConfig: OptimizersConfig? = nil,
         hnswConfig: HnswConfig? = nil,
-        quantizationConfig: QuantizationConfig? = nil
+        quantizationConfig: QuantizationConfig? = nil,
+        strictModeConfig: StrictModeConfig? = nil
     ) async throws -> Bool {
         var request = Qdrant_UpdateCollection()
         request.collectionName = name
@@ -71,6 +74,7 @@ extension QdrantClient {
             }
             request.quantizationConfig = diff
         }
+        if let strictModeConfig { request.strictModeConfig = strictModeConfig.proto }
         let response = try await call { try await collections.update(request) }
         return response.result
     }

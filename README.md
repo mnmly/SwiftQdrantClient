@@ -111,13 +111,25 @@ Beyond gRPC — **done & verified**:
       (NaturalLanguage), dependency-free `HashEmbedder`, and `QdrantEmbeddings`
       (`add`/`query` by text).
 
-Not yet ported:
-- [ ] Advanced query variants: `Formula`, `RelevanceFeedback` (raw-proto only).
-- [ ] `updateBatch` (mixed-operation batch); cluster info / setup.
-- [ ] Local mode: discovery/context/fusion/prefetch queries (server-only; throw
-      `QdrantError.unsupported`).
-- [ ] A transformer embedder (e.g. BGE via mlx-swift / swift-transformers)
-      conforming to `TextEmbedder`.
+Full model surface — **done & verified**:
+- [x] Config completeness: quantization (scalar/product/binary), full HNSW &
+      optimizer fields, WAL, sharding method, strict mode, multivector — on
+      create & update collection.
+- [x] Read selectors: `WithPayload` (bool/include/exclude) and `WithVectors`
+      (bool/names).
+- [x] Advanced query variants: `Formula` (full `Expression` tree incl. decay
+      functions) and `RelevanceFeedback`.
+- [x] Enriched responses: `ScoredPoint`/`RetrievedPoint` shard key + order value;
+      `CollectionInfo` optimizer status + payload schema.
+
+Not ported (deprecated / out of scope):
+- `init_from` on create collection — **deprecated and removed from the gRPC
+  `CreateCollection` message upstream**, so not wireable through the primary
+  transport.
+- Local mode: fusion/prefetch/formula/relevance-feedback queries are server-only
+  and throw `QdrantError.unsupported` (matching Python's local mode).
+- A transformer embedder (e.g. BGE via mlx-swift / swift-transformers) — the
+  `TextEmbedder` protocol is ready for one to conform.
 
 ## Testing
 

@@ -135,6 +135,81 @@ public struct WalConfig: Sendable {
     }
 }
 
+/// Strict-mode limits for a collection. Mirrors Python `models.StrictModeConfig`.
+public struct StrictModeConfig: Sendable {
+    public var enabled: Bool?
+    public var maxQueryLimit: UInt32?
+    public var maxTimeout: UInt32?
+    public var unindexedFilteringRetrieve: Bool?
+    public var unindexedFilteringUpdate: Bool?
+    public var searchMaxHnswEf: UInt32?
+    public var searchAllowExact: Bool?
+    public var searchMaxOversampling: Float?
+    public var upsertMaxBatchsize: UInt64?
+    public var maxCollectionVectorSizeBytes: UInt64?
+    public var maxCollectionPayloadSizeBytes: UInt64?
+    public var maxPointsCount: UInt64?
+    public var filterMaxConditions: UInt64?
+    public var conditionMaxSize: UInt64?
+
+    public init(
+        enabled: Bool? = nil, maxQueryLimit: UInt32? = nil, maxTimeout: UInt32? = nil,
+        unindexedFilteringRetrieve: Bool? = nil, unindexedFilteringUpdate: Bool? = nil,
+        searchMaxHnswEf: UInt32? = nil, searchAllowExact: Bool? = nil, searchMaxOversampling: Float? = nil,
+        upsertMaxBatchsize: UInt64? = nil, maxCollectionVectorSizeBytes: UInt64? = nil,
+        maxCollectionPayloadSizeBytes: UInt64? = nil, maxPointsCount: UInt64? = nil,
+        filterMaxConditions: UInt64? = nil, conditionMaxSize: UInt64? = nil
+    ) {
+        self.enabled = enabled; self.maxQueryLimit = maxQueryLimit; self.maxTimeout = maxTimeout
+        self.unindexedFilteringRetrieve = unindexedFilteringRetrieve
+        self.unindexedFilteringUpdate = unindexedFilteringUpdate
+        self.searchMaxHnswEf = searchMaxHnswEf; self.searchAllowExact = searchAllowExact
+        self.searchMaxOversampling = searchMaxOversampling; self.upsertMaxBatchsize = upsertMaxBatchsize
+        self.maxCollectionVectorSizeBytes = maxCollectionVectorSizeBytes
+        self.maxCollectionPayloadSizeBytes = maxCollectionPayloadSizeBytes
+        self.maxPointsCount = maxPointsCount; self.filterMaxConditions = filterMaxConditions
+        self.conditionMaxSize = conditionMaxSize
+    }
+
+    var proto: Qdrant_StrictModeConfig {
+        var c = Qdrant_StrictModeConfig()
+        if let enabled { c.enabled = enabled }
+        if let maxQueryLimit { c.maxQueryLimit = maxQueryLimit }
+        if let maxTimeout { c.maxTimeout = maxTimeout }
+        if let unindexedFilteringRetrieve { c.unindexedFilteringRetrieve = unindexedFilteringRetrieve }
+        if let unindexedFilteringUpdate { c.unindexedFilteringUpdate = unindexedFilteringUpdate }
+        if let searchMaxHnswEf { c.searchMaxHnswEf = searchMaxHnswEf }
+        if let searchAllowExact { c.searchAllowExact = searchAllowExact }
+        if let searchMaxOversampling { c.searchMaxOversampling = searchMaxOversampling }
+        if let upsertMaxBatchsize { c.upsertMaxBatchsize = upsertMaxBatchsize }
+        if let maxCollectionVectorSizeBytes { c.maxCollectionVectorSizeBytes = maxCollectionVectorSizeBytes }
+        if let maxCollectionPayloadSizeBytes { c.maxCollectionPayloadSizeBytes = maxCollectionPayloadSizeBytes }
+        if let maxPointsCount { c.maxPointsCount = maxPointsCount }
+        if let filterMaxConditions { c.filterMaxConditions = filterMaxConditions }
+        if let conditionMaxSize { c.conditionMaxSize = conditionMaxSize }
+        return c
+    }
+
+    var json: JSONValue {
+        var o: [String: JSONValue] = [:]
+        if let enabled { o["enabled"] = .bool(enabled) }
+        if let maxQueryLimit { o["max_query_limit"] = .int(Int64(maxQueryLimit)) }
+        if let maxTimeout { o["max_timeout"] = .int(Int64(maxTimeout)) }
+        if let unindexedFilteringRetrieve { o["unindexed_filtering_retrieve"] = .bool(unindexedFilteringRetrieve) }
+        if let unindexedFilteringUpdate { o["unindexed_filtering_update"] = .bool(unindexedFilteringUpdate) }
+        if let searchMaxHnswEf { o["search_max_hnsw_ef"] = .int(Int64(searchMaxHnswEf)) }
+        if let searchAllowExact { o["search_allow_exact"] = .bool(searchAllowExact) }
+        if let searchMaxOversampling { o["search_max_oversampling"] = .double(Double(searchMaxOversampling)) }
+        if let upsertMaxBatchsize { o["upsert_max_batchsize"] = .int(Int64(upsertMaxBatchsize)) }
+        if let maxCollectionVectorSizeBytes { o["max_collection_vector_size_bytes"] = .int(Int64(maxCollectionVectorSizeBytes)) }
+        if let maxCollectionPayloadSizeBytes { o["max_collection_payload_size_bytes"] = .int(Int64(maxCollectionPayloadSizeBytes)) }
+        if let maxPointsCount { o["max_points_count"] = .int(Int64(maxPointsCount)) }
+        if let filterMaxConditions { o["filter_max_conditions"] = .int(Int64(filterMaxConditions)) }
+        if let conditionMaxSize { o["condition_max_size"] = .int(Int64(conditionMaxSize)) }
+        return .object(o)
+    }
+}
+
 /// Collection sharding method. Mirrors Python `models.ShardingMethod`.
 public enum ShardingMethod: Sendable {
     case auto, custom
