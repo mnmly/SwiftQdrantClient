@@ -4,6 +4,10 @@ A 1-to-1 Swift port of the Qdrant Python client. Three backends (gRPC
 ``QdrantClient``, REST ``QdrantRESTClient``, in-memory ``QdrantLocalClient``)
 conform to one `QdrantClientProtocol`. See `README.md` for the surface.
 
+Ported from qdrant-client **v1.18.0** (commit `326adef`). When upgrading to a
+newer upstream, follow the migration checklist in `UPSTREAM.md` and update the
+version/commit recorded there.
+
 Generated gRPC/protobuf code lives under `Sources/QdrantProtos/Generated/` and is
 committed; regenerate via the command in `README.md` when the `.proto` files
 change. Don't hand-edit generated files.

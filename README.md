@@ -14,6 +14,9 @@ Three interchangeable backends conform to one `QdrantClientProtocol`:
 
 Plus an embeddings layer (`TextEmbedder` + `QdrantEmbeddings`) for "search by text".
 
+Ported from qdrant-client **v1.18.0** (commit `326adef`). See
+[UPSTREAM.md](UPSTREAM.md) for provenance and the upgrade checklist.
+
 ## Layout
 
 ```
