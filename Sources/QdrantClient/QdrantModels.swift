@@ -171,13 +171,20 @@ public struct RetrievedPoint: Sendable {
     public let vector: [Float]?
     /// Named vectors, if the point uses them (dense only are decoded as `.dense`).
     public let vectors: [String: VectorData]
+    /// The shard key the point belongs to (custom sharding only).
+    public let shardKey: ShardKey?
+    /// The value the point was ordered by (order-by scroll/query only).
+    public let orderValue: OrderValue?
 
     public init(id: PointID, payload: Payload = [:], vector: [Float]? = nil,
-                vectors: [String: VectorData] = [:]) {
+                vectors: [String: VectorData] = [:],
+                shardKey: ShardKey? = nil, orderValue: OrderValue? = nil) {
         self.id = id
         self.payload = payload
         self.vector = vector
         self.vectors = vectors
+        self.shardKey = shardKey
+        self.orderValue = orderValue
     }
 
     init(_ proto: Qdrant_RetrievedPoint) {
@@ -199,6 +206,8 @@ public struct RetrievedPoint: Sendable {
             self.vector = nil
             self.vectors = [:]
         }
+        self.shardKey = proto.hasShardKey ? ShardKey(proto.shardKey) : nil
+        self.orderValue = proto.hasOrderValue ? OrderValue(proto.orderValue) : nil
     }
 }
 
@@ -218,6 +227,21 @@ public enum FieldType: Sendable {
         case .bool: return .bool
         case .datetime: return .datetime
         case .uuid: return .uuid
+        }
+    }
+
+    /// Map from a collection's payload-schema type (skips `unknownType`).
+    init?(schema: Qdrant_PayloadSchemaType) {
+        switch schema {
+        case .keyword: self = .keyword
+        case .integer: self = .integer
+        case .float: self = .float
+        case .geo: self = .geo
+        case .text: self = .text
+        case .bool: self = .bool
+        case .datetime: self = .datetime
+        case .uuid: self = .uuid
+        default: return nil
         }
     }
 }
@@ -255,10 +279,15 @@ public struct ScoredPoint: Sendable {
     public let vector: [Float]?
     /// Named vectors, if requested and present.
     public let vectors: [String: VectorData]
+    /// The shard key the point belongs to (custom sharding only).
+    public let shardKey: ShardKey?
+    /// The value the point was ordered by (order-by queries only).
+    public let orderValue: OrderValue?
 
     public init(
         id: PointID, score: Float, version: UInt64 = 0,
-        payload: Payload = [:], vector: [Float]? = nil, vectors: [String: VectorData] = [:]
+        payload: Payload = [:], vector: [Float]? = nil, vectors: [String: VectorData] = [:],
+        shardKey: ShardKey? = nil, orderValue: OrderValue? = nil
     ) {
         self.id = id
         self.score = score
@@ -266,6 +295,8 @@ public struct ScoredPoint: Sendable {
         self.payload = payload
         self.vector = vector
         self.vectors = vectors
+        self.shardKey = shardKey
+        self.orderValue = orderValue
     }
 
     init(_ proto: Qdrant_ScoredPoint) {
@@ -283,5 +314,7 @@ public struct ScoredPoint: Sendable {
             self.vector = nil
             self.vectors = [:]
         }
+        self.shardKey = proto.hasShardKey ? ShardKey(proto.shardKey) : nil
+        self.orderValue = proto.hasOrderValue ? OrderValue(proto.orderValue) : nil
     }
 }

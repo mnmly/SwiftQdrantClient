@@ -126,6 +126,18 @@ swift test                                    # unit tests (model/local/embeddin
 
 # integration (gRPC :6334 + REST :6333):
 docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
-QDRANT_INTEGRATION=1 swift test               # all 20 tests
+QDRANT_INTEGRATION=1 swift test               # full suite
+```
+
+## Documentation
+
+```sh
+Scripts/build_docs.sh                 # static DocC site -> docs/QdrantClient/
+Scripts/build_docs.sh preview         # live local preview
+
+# LLM-friendly single-file export (docs/llms.txt). Needs a recent swift.org
+# toolchain for docc's experimental Markdown flags — the script auto-sources
+# ~/.swiftly/env.sh, so `swiftly use main-snapshot` once and this just works.
+EMIT_LLMS_TXT=1 Scripts/build_docs.sh
 ```
 ```

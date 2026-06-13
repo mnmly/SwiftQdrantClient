@@ -21,9 +21,19 @@
 # Optional env:
 #   OUTPUT_DIR           Default: docs
 #   REQUIRE_GH_PAGES=1   Refuse to build off the gh-pages branch unless -f.
-#   EMIT_MARKDOWN=1      Pass --enable-experimental-markdown-output
-#                        (per-symbol .md files under <out>/<target>/data/).
-#   EMIT_LLMS_TXT=1      Above + concatenate into <OUTPUT_DIR>/llms.txt.
+#   EMIT_MARKDOWN=1      Pass the experimental Markdown-output flags
+#                        (--enable-experimental-markdown-output and
+#                         --enable-experimental-markdown-output-manifest) so docc
+#                        emits per-symbol .md files (+ a manifest) under
+#                        <out>/<target>/. These exist only in recent swift-docc —
+#                        the Xcode-bundled docc lacks them and they are probed and
+#                        skipped with a warning (use a swift.org toolchain; see
+#                        TOOLCHAIN below).
+#   EMIT_LLMS_TXT=1      Above + concatenate the .md into <OUTPUT_DIR>/llms.txt.
+#   TOOLCHAIN            Build with a specific toolchain (identifier or the alias
+#                        "swift"). Honors TOOLCHAINS too. If neither is set and
+#                        swiftly is installed, ~/.swiftly/env.sh is sourced so the
+#                        toolchain you `swiftly use` is picked up automatically.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -33,6 +43,17 @@ HOSTING_BASE_PATH="${HOSTING_BASE_PATH:-SwiftQdrantClient}"
 REPO_URL="${REPO_URL:-https://github.com/mnmly/SwiftQdrantClient}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 OUTPUT_DIR="${OUTPUT_DIR:-docs}"
+
+# Toolchain selection. The experimental Markdown flags require a recent swift-docc
+# (newer than the one bundled with current Xcode). Let callers point at one without
+# prefixing every invocation, and fall back to a swiftly selection if present.
+if [[ -z "${TOOLCHAINS:-}" && -n "${TOOLCHAIN:-}" ]]; then
+    export TOOLCHAINS="$TOOLCHAIN"
+fi
+if [[ -z "${TOOLCHAINS:-}" && -f "$HOME/.swiftly/env.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "$HOME/.swiftly/env.sh"
+fi
 
 FORCE=0
 MODE="build"
@@ -64,9 +85,28 @@ fi
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
+# Resolve the same docc the plugin will use: prefer one on PATH (swiftly puts the
+# selected toolchain's binaries there), else fall back to xcrun (honors TOOLCHAINS).
+# The experimental flags only exist in recent swift-docc; probe and skip-with-warning
+# rather than hard-failing on an unknown option (the Xcode-bundled docc lacks them).
+DOCC_BIN="$(command -v docc 2>/dev/null || xcrun --find docc 2>/dev/null || true)"
+docc_supports() {
+    [[ -n "$DOCC_BIN" ]] && "$DOCC_BIN" convert --help 2>&1 | grep -q -- "$1"
+}
+
 EXTRA_FLAGS=()
 if [[ "${EMIT_MARKDOWN:-0}" == "1" || "${EMIT_LLMS_TXT:-0}" == "1" ]]; then
-    EXTRA_FLAGS+=(--enable-experimental-markdown-output)
+    for flag in --enable-experimental-markdown-output \
+                --enable-experimental-markdown-output-manifest; do
+        if docc_supports "$flag"; then
+            EXTRA_FLAGS+=("$flag")
+        else
+            echo "warning: active docc does not support '$flag' — skipping." >&2
+            echo "         Use a recent swift.org toolchain (e.g. via swiftly:" >&2
+            echo "         'swiftly install main-snapshot && swiftly use main-snapshot')," >&2
+            echo "         or pass TOOLCHAIN=<id>. The Xcode-bundled docc lacks it." >&2
+        fi
+    done
 fi
 
 SOURCE_FLAGS=()

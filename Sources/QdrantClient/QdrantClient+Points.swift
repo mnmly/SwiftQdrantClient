@@ -9,8 +9,8 @@ extension QdrantClient {
     public func retrieve(
         collection: String,
         ids: [PointID],
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) async throws -> [RetrievedPoint] {
         var request = Qdrant_GetPoints()
         request.collectionName = collection
@@ -28,8 +28,8 @@ extension QdrantClient {
         filter: Filter? = nil,
         limit: UInt32 = 10,
         offset: PointID? = nil,
-        withPayload: Bool = true,
-        withVectors: Bool = false,
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false,
         orderBy: OrderBy? = nil
     ) async throws -> (points: [RetrievedPoint], nextOffset: PointID?) {
         var request = Qdrant_ScrollPoints()
@@ -192,17 +192,9 @@ extension QdrantClient {
 
     // MARK: - Selector helpers
 
-    static func payloadSelector(_ enable: Bool) -> Qdrant_WithPayloadSelector {
-        var s = Qdrant_WithPayloadSelector()
-        s.selectorOptions = .enable(enable)
-        return s
-    }
+    static func payloadSelector(_ s: WithPayload) -> Qdrant_WithPayloadSelector { s.proto }
 
-    static func vectorsSelector(_ enable: Bool) -> Qdrant_WithVectorsSelector {
-        var s = Qdrant_WithVectorsSelector()
-        s.selectorOptions = .enable(enable)
-        return s
-    }
+    static func vectorsSelector(_ s: WithVectors) -> Qdrant_WithVectorsSelector { s.proto }
 }
 
 // MARK: - OrderBy

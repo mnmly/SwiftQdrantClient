@@ -42,11 +42,15 @@ public actor QdrantLocalClient: QdrantClientProtocol {
         name: String,
         vectors: VectorsConfiguration,
         sparseVectors: [String: SparseVectorParams]? = nil,
+        quantizationConfig: QuantizationConfig? = nil,
         hnswConfig: HnswConfig? = nil,
         optimizersConfig: OptimizersConfig? = nil,
+        walConfig: WalConfig? = nil,
         onDiskPayload: Bool? = nil,
         shardNumber: UInt32? = nil,
-        replicationFactor: UInt32? = nil
+        shardingMethod: ShardingMethod? = nil,
+        replicationFactor: UInt32? = nil,
+        writeConsistencyFactor: UInt32? = nil
     ) async throws -> Bool {
         var params: [String: (size: UInt64, distance: Distance)] = [:]
         switch vectors {
@@ -166,7 +170,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
     // MARK: - Read
 
     public func retrieve(
-        collection: String, ids: [PointID], withPayload: Bool = true, withVectors: Bool = false
+        collection: String, ids: [PointID], withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [RetrievedPoint] {
         let c = try get(collection)
         return ids.compactMap { c.points[$0] }.map { stored in
@@ -176,7 +180,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
 
     public func scroll(
         collection: String, filter: Filter? = nil, limit: UInt32 = 10, offset: PointID? = nil,
-        withPayload: Bool = true, withVectors: Bool = false, orderBy: OrderBy? = nil
+        withPayload: WithPayload = true, withVectors: WithVectors = false, orderBy: OrderBy? = nil
     ) async throws -> (points: [RetrievedPoint], nextOffset: PointID?) {
         let c = try get(collection)
         var matched = c.points.values.filter {
@@ -215,7 +219,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
     public func query(
         collection: String, query: Query? = nil, using: String? = nil, prefetch: [Prefetch] = [],
         filter: Filter? = nil, params: SearchParams? = nil, scoreThreshold: Float? = nil,
-        limit: UInt64 = 10, offset: UInt64 = 0, withPayload: Bool = true, withVectors: Bool = false
+        limit: UInt64 = 10, offset: UInt64 = 0, withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         guard prefetch.isEmpty else {
             throw QdrantError.unsupported("prefetch (hybrid) queries are not supported in local mode")
@@ -436,23 +440,24 @@ public actor QdrantLocalClient: QdrantClientProtocol {
         }
     }
 
-    private func makeRetrieved(_ p: StoredPoint, withPayload: Bool, withVectors: Bool) -> RetrievedPoint {
+    private func makeRetrieved(_ p: StoredPoint, withPayload: WithPayload, withVectors: WithVectors) -> RetrievedPoint {
         let (vector, vectors) = vectorOutput(p, withVectors: withVectors)
-        return RetrievedPoint(id: p.id, payload: withPayload ? p.payload : [:], vector: vector, vectors: vectors)
+        return RetrievedPoint(id: p.id, payload: withPayload.apply(p.payload), vector: vector, vectors: vectors)
     }
 
-    private func makeScored(_ p: StoredPoint, score: Float, withPayload: Bool, withVectors: Bool) -> ScoredPoint {
+    private func makeScored(_ p: StoredPoint, score: Float, withPayload: WithPayload, withVectors: WithVectors) -> ScoredPoint {
         let (vector, vectors) = vectorOutput(p, withVectors: withVectors)
         return ScoredPoint(id: p.id, score: score, version: 0,
-                           payload: withPayload ? p.payload : [:], vector: vector, vectors: vectors)
+                           payload: withPayload.apply(p.payload), vector: vector, vectors: vectors)
     }
 
-    private func vectorOutput(_ p: StoredPoint, withVectors: Bool) -> ([Float]?, [String: VectorData]) {
-        guard withVectors else { return (nil, [:]) }
-        if p.vectors.count == 1, let only = p.vectors[Self.defaultVector], case .dense(let d) = only {
+    private func vectorOutput(_ p: StoredPoint, withVectors: WithVectors) -> ([Float]?, [String: VectorData]) {
+        guard withVectors.isEnabled else { return (nil, [:]) }
+        let selected = withVectors.apply(p.vectors)
+        if selected.count == 1, let only = selected[Self.defaultVector], case .dense(let d) = only {
             return (d, [:])
         }
-        return (nil, p.vectors)
+        return (nil, selected)
     }
 
     // MARK: - Parity: payload indexes / vectors / collection config
@@ -513,7 +518,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
     }
 
     @discardableResult
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil) async throws -> Bool {
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil) async throws -> Bool {
         _ = try get(name)
         return true
     }
@@ -571,7 +576,7 @@ public actor QdrantLocalClient: QdrantClientProtocol {
     public func queryGroups(
         collection: String, groupBy: String, query: Query? = nil, using: String? = nil, prefetch: [Prefetch] = [],
         filter: Filter? = nil, params: SearchParams? = nil, scoreThreshold: Float? = nil, limit: UInt64 = 10,
-        groupSize: UInt64 = 3, withPayload: Bool = true, withVectors: Bool = false
+        groupSize: UInt64 = 3, withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [PointGroup] {
         // Over-fetch then group by the payload key.
         let hits = try await self.query(

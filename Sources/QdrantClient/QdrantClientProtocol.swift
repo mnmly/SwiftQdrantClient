@@ -18,11 +18,15 @@ public protocol QdrantClientProtocol: Sendable {
         name: String,
         vectors: VectorsConfiguration,
         sparseVectors: [String: SparseVectorParams]?,
+        quantizationConfig: QuantizationConfig?,
         hnswConfig: HnswConfig?,
         optimizersConfig: OptimizersConfig?,
+        walConfig: WalConfig?,
         onDiskPayload: Bool?,
         shardNumber: UInt32?,
-        replicationFactor: UInt32?
+        shardingMethod: ShardingMethod?,
+        replicationFactor: UInt32?,
+        writeConsistencyFactor: UInt32?
     ) async throws -> Bool
 
     func collectionExists(_ name: String) async throws -> Bool
@@ -39,11 +43,11 @@ public protocol QdrantClientProtocol: Sendable {
 
     // MARK: Points (read)
     func retrieve(
-        collection: String, ids: [PointID], withPayload: Bool, withVectors: Bool
+        collection: String, ids: [PointID], withPayload: WithPayload, withVectors: WithVectors
     ) async throws -> [RetrievedPoint]
     func scroll(
         collection: String, filter: Filter?, limit: UInt32, offset: PointID?,
-        withPayload: Bool, withVectors: Bool, orderBy: OrderBy?
+        withPayload: WithPayload, withVectors: WithVectors, orderBy: OrderBy?
     ) async throws -> (points: [RetrievedPoint], nextOffset: PointID?)
     func count(collection: String, filter: Filter?, exact: Bool) async throws -> UInt64
 
@@ -51,7 +55,7 @@ public protocol QdrantClientProtocol: Sendable {
     func query(
         collection: String, query: Query?, using: String?, prefetch: [Prefetch],
         filter: Filter?, params: SearchParams?, scoreThreshold: Float?,
-        limit: UInt64, offset: UInt64, withPayload: Bool, withVectors: Bool
+        limit: UInt64, offset: UInt64, withPayload: WithPayload, withVectors: WithVectors
     ) async throws -> [ScoredPoint]
 
     // MARK: Payload (extended)
@@ -76,13 +80,13 @@ public protocol QdrantClientProtocol: Sendable {
     func queryGroups(
         collection: String, groupBy: String, query: Query?, using: String?, prefetch: [Prefetch],
         filter: Filter?, params: SearchParams?, scoreThreshold: Float?, limit: UInt64,
-        groupSize: UInt64, withPayload: Bool, withVectors: Bool
+        groupSize: UInt64, withPayload: WithPayload, withVectors: WithVectors
     ) async throws -> [PointGroup]
     func searchMatrixPairs(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> [SearchMatrixPair]
     func searchMatrixOffsets(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> SearchMatrixOffsets
 
     // MARK: Collections (extended)
-    func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?) async throws -> Bool
+    func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?) async throws -> Bool
     func getCollections() async throws -> [String]
     func updateAliases(_ actions: [AliasOperation]) async throws -> Bool
     func listCollectionAliases(_ collection: String) async throws -> [AliasDescription]
@@ -143,15 +147,16 @@ extension QdrantClientProtocol {
         try await createCollection(
             name: name,
             vectors: .single(.init(size: size, distance: distance)),
-            sparseVectors: nil, hnswConfig: nil, optimizersConfig: nil,
-            onDiskPayload: nil, shardNumber: nil, replicationFactor: nil)
+            sparseVectors: nil, quantizationConfig: nil, hnswConfig: nil, optimizersConfig: nil,
+            walConfig: nil, onDiskPayload: nil, shardNumber: nil, shardingMethod: nil,
+            replicationFactor: nil, writeConsistencyFactor: nil)
     }
 
     /// Nearest-neighbour query by a dense vector.
     public func query(
         collection: String, vector: [Float], limit: UInt64 = 10,
         using: String? = nil, filter: Filter? = nil,
-        withPayload: Bool = true, withVectors: Bool = false
+        withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         try await query(
             collection: collection, query: .nearest(.dense(vector)), using: using,
@@ -172,8 +177,9 @@ extension QdrantClientProtocol {
         _ = try? await deleteCollection(name)
         return try await createCollection(
             name: name, vectors: vectors, sparseVectors: sparseVectors,
-            hnswConfig: nil, optimizersConfig: nil, onDiskPayload: nil,
-            shardNumber: nil, replicationFactor: nil)
+            quantizationConfig: nil, hnswConfig: nil, optimizersConfig: nil,
+            walConfig: nil, onDiskPayload: nil, shardNumber: nil, shardingMethod: nil,
+            replicationFactor: nil, writeConsistencyFactor: nil)
     }
 
     /// Upload points in batches (chunked upsert).
@@ -241,8 +247,9 @@ extension QdrantClientProtocol {
             // Recreate schema from the source collection's vector config.
             let cfg = try await collectionVectorsConfig(name)
             _ = try await dest.createCollection(
-                name: name, vectors: cfg, sparseVectors: nil, hnswConfig: nil,
-                optimizersConfig: nil, onDiskPayload: nil, shardNumber: nil, replicationFactor: nil)
+                name: name, vectors: cfg, sparseVectors: nil, quantizationConfig: nil,
+                hnswConfig: nil, optimizersConfig: nil, walConfig: nil, onDiskPayload: nil,
+                shardNumber: nil, shardingMethod: nil, replicationFactor: nil, writeConsistencyFactor: nil)
             // Copy points by scrolling.
             var offset: PointID? = nil
             repeat {
@@ -293,10 +300,10 @@ extension QdrantClientProtocol {
     public func deleteVectorName(collection: String, vectorName: String, wait: Bool) async throws -> UpdateResult { throw QdrantError.unsupported("deleteVectorName") }
     public func facet(collection: String, key: String, filter: Filter?, limit: UInt64?, exact: Bool) async throws -> [FacetHit] { throw QdrantError.unsupported("facet") }
     public func queryBatch(collection: String, queries: [QueryRequest]) async throws -> [[ScoredPoint]] { throw QdrantError.unsupported("queryBatch") }
-    public func queryGroups(collection: String, groupBy: String, query: Query?, using: String?, prefetch: [Prefetch], filter: Filter?, params: SearchParams?, scoreThreshold: Float?, limit: UInt64, groupSize: UInt64, withPayload: Bool, withVectors: Bool) async throws -> [PointGroup] { throw QdrantError.unsupported("queryGroups") }
+    public func queryGroups(collection: String, groupBy: String, query: Query?, using: String?, prefetch: [Prefetch], filter: Filter?, params: SearchParams?, scoreThreshold: Float?, limit: UInt64, groupSize: UInt64, withPayload: WithPayload, withVectors: WithVectors) async throws -> [PointGroup] { throw QdrantError.unsupported("queryGroups") }
     public func searchMatrixPairs(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> [SearchMatrixPair] { throw QdrantError.unsupported("searchMatrixPairs") }
     public func searchMatrixOffsets(collection: String, filter: Filter?, sample: UInt64, limit: UInt64, using: String?) async throws -> SearchMatrixOffsets { throw QdrantError.unsupported("searchMatrixOffsets") }
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?) async throws -> Bool { throw QdrantError.unsupported("updateCollection") }
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig?, hnswConfig: HnswConfig?, quantizationConfig: QuantizationConfig?) async throws -> Bool { throw QdrantError.unsupported("updateCollection") }
     public func updateAliases(_ actions: [AliasOperation]) async throws -> Bool { throw QdrantError.unsupported("updateAliases") }
     public func listCollectionAliases(_ collection: String) async throws -> [AliasDescription] { throw QdrantError.unsupported("listCollectionAliases") }
     public func listAliases() async throws -> [AliasDescription] { throw QdrantError.unsupported("listAliases") }

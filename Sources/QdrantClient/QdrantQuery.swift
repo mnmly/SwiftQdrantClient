@@ -155,11 +155,15 @@ public struct SearchParams: Sendable {
     public var hnswEf: UInt64?
     public var exact: Bool?
     public var indexedOnly: Bool?
+    /// Per-query quantization controls (ignore / rescore / oversampling).
+    public var quantization: QuantizationSearchParams?
 
-    public init(hnswEf: UInt64? = nil, exact: Bool? = nil, indexedOnly: Bool? = nil) {
+    public init(hnswEf: UInt64? = nil, exact: Bool? = nil, indexedOnly: Bool? = nil,
+                quantization: QuantizationSearchParams? = nil) {
         self.hnswEf = hnswEf
         self.exact = exact
         self.indexedOnly = indexedOnly
+        self.quantization = quantization
     }
 
     var proto: Qdrant_SearchParams {
@@ -167,7 +171,17 @@ public struct SearchParams: Sendable {
         if let hnswEf { p.hnswEf = hnswEf }
         if let exact { p.exact = exact }
         if let indexedOnly { p.indexedOnly = indexedOnly }
+        if let quantization { p.quantization = quantization.proto }
         return p
+    }
+
+    var json: JSONValue {
+        var o: [String: JSONValue] = [:]
+        if let hnswEf { o["hnsw_ef"] = .int(Int64(hnswEf)) }
+        if let exact { o["exact"] = .bool(exact) }
+        if let indexedOnly { o["indexed_only"] = .bool(indexedOnly) }
+        if let quantization { o["quantization"] = quantization.json }
+        return .object(o)
     }
 }
 

@@ -94,6 +94,57 @@ final class QdrantParityIntegrationTests: XCTestCase {
         try await c.close()
     }
 
+    /// Payload-field selectors + enriched CollectionInfo (payloadSchema) live.
+    func testSelectorsAndPayloadSchemaLive() async throws {
+        try skipUnlessIntegration()
+        let c = try QdrantClient(host: "localhost")
+        let name = "swift_selectors"
+        _ = try? await c.deleteCollection(name)
+        _ = try await c.createCollection(name: name, size: 3, distance: .cosine)
+        try await c.upsert(collection: name, points: [
+            .init(id: 1, vector: [1, 0, 0], payload: ["city": "Berlin", "country": "DE", "pop": 3_500_000]),
+        ])
+        _ = try await c.createPayloadIndex(collection: name, fieldName: "city", fieldType: .keyword, wait: true)
+
+        // with_payload include subset
+        let hits = try await c.query(collection: name, query: .nearest(.dense([1, 0, 0])),
+                                     using: nil, prefetch: [], filter: nil, params: nil, scoreThreshold: nil,
+                                     limit: 1, offset: 0, withPayload: ["city"], withVectors: false)
+        XCTAssertEqual(hits.first?.payload.keys.sorted(), ["city"])
+
+        // enriched CollectionInfo carries the indexed field schema
+        let info = try await c.getCollection(name)
+        XCTAssertEqual(info.payloadSchema["city"], .keyword)
+
+        _ = try await c.deleteCollection(name)
+        try await c.close()
+    }
+
+    /// Create a collection with quantization + full HNSW/optimizer config (the
+    /// model surface that was previously missing) and confirm the server accepts it.
+    func testQuantizationConfigLive() async throws {
+        try skipUnlessIntegration()
+        let c = try QdrantClient(host: "localhost")
+        let name = "swift_quant"
+        _ = try? await c.deleteCollection(name)
+        let created = try await c.createCollection(
+            name: name,
+            vectors: .single(.init(size: 8, distance: .cosine, onDisk: true, datatype: .float16,
+                                   hnswConfig: .init(m: 16, efConstruct: 100, payloadM: 8),
+                                   quantizationConfig: .scalar(.init(type: .int8, quantile: 0.99, alwaysRam: true)))),
+            optimizersConfig: .init(defaultSegmentNumber: 2, indexingThreshold: 10_000),
+            walConfig: .init(walCapacityMb: 32))
+        XCTAssertTrue(created)
+
+        // Update quantization to binary, then verify the collection is still green.
+        _ = try await c.updateCollection(name: name, quantizationConfig: .binary(.init(alwaysRam: true)))
+        let info = try await c.getCollection(name)
+        XCTAssertNotEqual(info.status, .red)
+
+        _ = try await c.deleteCollection(name)
+        try await c.close()
+    }
+
     /// Migrate a collection from a remote (gRPC) client into an in-memory local client.
     func testMigrateRemoteToLocal() async throws {
         try skipUnlessIntegration()

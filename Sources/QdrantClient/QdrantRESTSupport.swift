@@ -187,7 +187,7 @@ extension QueryRequest {
     var restJSON: JSONValue {
         var o: [String: JSONValue] = [
             "limit": .int(Int64(limit)), "offset": .int(Int64(offset)),
-            "with_payload": .bool(withPayload), "with_vector": .bool(withVectors),
+            "with_payload": withPayload.restJSON, "with_vector": withVectors.restJSON,
         ]
         if let query { o["query"] = query.json }
         if let using { o["using"] = .string(using) }
@@ -199,11 +199,20 @@ extension QueryRequest {
     }
 }
 
+extension VectorDatatype {
+    var restValue: String {
+        switch self { case .float32: return "float32"; case .uint8: return "uint8"; case .float16: return "float16" }
+    }
+}
+
 extension VectorParams {
     var json: JSONValue {
         var o: [String: JSONValue] = ["size": .int(Int64(size)), "distance": .string(distance.restValue)]
         if let onDisk { o["on_disk"] = .bool(onDisk) }
+        if let datatype { o["datatype"] = .string(datatype.restValue) }
         if let h = hnswConfig { o["hnsw_config"] = h.json }
+        if let q = quantizationConfig { o["quantization_config"] = q.json }
+        if let mv = multivectorComparator { o["multivector_config"] = .object(["comparator": .string(mv == .maxSim ? "max_sim" : "max_sim")]) }
         return .object(o)
     }
 }
@@ -214,7 +223,9 @@ extension HnswConfig {
         if let m { o["m"] = .int(Int64(m)) }
         if let efConstruct { o["ef_construct"] = .int(Int64(efConstruct)) }
         if let fullScanThreshold { o["full_scan_threshold"] = .int(Int64(fullScanThreshold)) }
+        if let maxIndexingThreads { o["max_indexing_threads"] = .int(Int64(maxIndexingThreads)) }
         if let onDisk { o["on_disk"] = .bool(onDisk) }
+        if let payloadM { o["payload_m"] = .int(Int64(payloadM)) }
         return .object(o)
     }
 }
@@ -222,9 +233,62 @@ extension HnswConfig {
 extension OptimizersConfig {
     var json: JSONValue {
         var o: [String: JSONValue] = [:]
+        if let deletedThreshold { o["deleted_threshold"] = .double(deletedThreshold) }
+        if let vacuumMinVectorNumber { o["vacuum_min_vector_number"] = .int(Int64(vacuumMinVectorNumber)) }
         if let defaultSegmentNumber { o["default_segment_number"] = .int(Int64(defaultSegmentNumber)) }
+        if let maxSegmentSize { o["max_segment_size"] = .int(Int64(maxSegmentSize)) }
         if let memmapThreshold { o["memmap_threshold"] = .int(Int64(memmapThreshold)) }
         if let indexingThreshold { o["indexing_threshold"] = .int(Int64(indexingThreshold)) }
+        if let flushIntervalSec { o["flush_interval_sec"] = .int(Int64(flushIntervalSec)) }
+        if let maxOptimizationThreads { o["max_optimization_threads"] = .int(Int64(maxOptimizationThreads)) }
+        return .object(o)
+    }
+}
+
+extension WalConfig {
+    var json: JSONValue {
+        var o: [String: JSONValue] = [:]
+        if let walCapacityMb { o["wal_capacity_mb"] = .int(Int64(walCapacityMb)) }
+        if let walSegmentsAhead { o["wal_segments_ahead"] = .int(Int64(walSegmentsAhead)) }
+        return .object(o)
+    }
+}
+
+extension QuantizationConfig {
+    var json: JSONValue {
+        switch self {
+        case .scalar(let s):
+            var inner: [String: JSONValue] = ["type": .string("int8")]
+            if let q = s.quantile { inner["quantile"] = .double(Double(q)) }
+            if let r = s.alwaysRam { inner["always_ram"] = .bool(r) }
+            return .object(["scalar": .object(inner)])
+        case .product(let p):
+            var inner: [String: JSONValue] = ["compression": .string(p.compression.restValue)]
+            if let r = p.alwaysRam { inner["always_ram"] = .bool(r) }
+            return .object(["product": .object(inner)])
+        case .binary(let b):
+            var inner: [String: JSONValue] = [:]
+            if let r = b.alwaysRam { inner["always_ram"] = .bool(r) }
+            return .object(["binary": .object(inner)])
+        }
+    }
+}
+
+extension CompressionRatio {
+    var restValue: String {
+        switch self {
+        case .x4: return "x4"; case .x8: return "x8"; case .x16: return "x16"
+        case .x32: return "x32"; case .x64: return "x64"
+        }
+    }
+}
+
+extension QuantizationSearchParams {
+    var json: JSONValue {
+        var o: [String: JSONValue] = [:]
+        if let ignore { o["ignore"] = .bool(ignore) }
+        if let rescore { o["rescore"] = .bool(rescore) }
+        if let oversampling { o["oversampling"] = .double(oversampling) }
         return .object(o)
     }
 }
@@ -234,6 +298,7 @@ extension SparseVectorParams {
         var index: [String: JSONValue] = [:]
         if let onDisk { index["on_disk"] = .bool(onDisk) }
         if let fullScanThreshold { index["full_scan_threshold"] = .int(Int64(fullScanThreshold)) }
+        if let datatype { index["datatype"] = .string(datatype.restValue) }
         var o: [String: JSONValue] = [:]
         if !index.isEmpty { o["index"] = .object(index) }
         if let modifier { o["modifier"] = .string(modifier == .idf ? "idf" : "none") }
@@ -351,16 +416,6 @@ extension Query {
         case .fusion(let f): return .object(["fusion": .string(f == .rrf ? "rrf" : "dbsf")])
         case .sampleRandom: return .object(["sample": .string("random")])
         }
-    }
-}
-
-extension SearchParams {
-    var json: JSONValue {
-        var o: [String: JSONValue] = [:]
-        if let v = hnswEf { o["hnsw_ef"] = .int(Int64(v)) }
-        if let v = exact { o["exact"] = .bool(v) }
-        if let v = indexedOnly { o["indexed_only"] = .bool(v) }
-        return .object(o)
     }
 }
 

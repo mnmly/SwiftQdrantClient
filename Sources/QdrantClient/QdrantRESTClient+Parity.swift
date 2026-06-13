@@ -94,11 +94,11 @@ extension QdrantRESTClient {
     public func queryGroups(
         collection: String, groupBy: String, query: Query? = nil, using: String? = nil, prefetch: [Prefetch] = [],
         filter: Filter? = nil, params: SearchParams? = nil, scoreThreshold: Float? = nil, limit: UInt64 = 10,
-        groupSize: UInt64 = 3, withPayload: Bool = true, withVectors: Bool = false
+        groupSize: UInt64 = 3, withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [PointGroup] {
         var body: [String: JSONValue] = [
             "group_by": .string(groupBy), "limit": .int(Int64(limit)), "group_size": .int(Int64(groupSize)),
-            "with_payload": .bool(withPayload), "with_vector": .bool(withVectors),
+            "with_payload": withPayload.restJSON, "with_vector": withVectors.restJSON,
         ]
         if let query { body["query"] = query.json }
         if let using { body["using"] = .string(using) }
@@ -129,10 +129,11 @@ extension QdrantRESTClient {
     // MARK: - Collections (extended)
 
     @discardableResult
-    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil) async throws -> Bool {
+    public func updateCollection(name: String, optimizersConfig: OptimizersConfig? = nil, hnswConfig: HnswConfig? = nil, quantizationConfig: QuantizationConfig? = nil) async throws -> Bool {
         var body: [String: JSONValue] = [:]
         if let optimizersConfig { body["optimizers_config"] = optimizersConfig.json }
         if let hnswConfig { body["hnsw_config"] = hnswConfig.json }
+        if let quantizationConfig { body["quantization_config"] = quantizationConfig.json }
         return (try await send(.patch, "/collections/\(name)", .object(body))).boolValue ?? true
     }
 

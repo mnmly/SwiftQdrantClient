@@ -56,10 +56,24 @@ For "search by text", layer ``QdrantEmbeddings`` over any backend with a
 - ``VectorDatatype``
 - ``HnswConfig``
 - ``OptimizersConfig``
+- ``WalConfig``
+- ``ShardingMethod``
+- ``MultivectorComparator``
 - ``SparseVectorParams``
 - ``SparseModifier``
 - ``CollectionInfo``
 - ``CollectionStatus``
+
+### Quantization
+
+- ``QuantizationConfig``
+- ``ScalarQuantization``
+- ``ProductQuantization``
+- ``BinaryQuantization``
+- ``QuantizationType``
+- ``CompressionRatio``
+- ``BinaryQuantizationEncoding``
+- ``QuantizationSearchParams``
 
 ### Writing points
 
@@ -87,6 +101,9 @@ For "search by text", layer ``QdrantEmbeddings`` over any backend with a
 - ``SearchParams``
 - ``QueryRequest``
 - ``OrderBy``
+- ``OrderValue``
+- ``WithPayload``
+- ``WithVectors``
 - ``ScoredPoint``
 - ``RetrievedPoint``
 

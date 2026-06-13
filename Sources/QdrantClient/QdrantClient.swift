@@ -47,7 +47,11 @@ public actor QdrantClient {
             target: .host(configuration.host, port: configuration.grpcPort),
             transportSecurity: security,
             eventLoopGroup: group
-        )
+        ) { config in
+            // Default is 4 MB, which is too small for large named/multivectors
+            // (e.g. dense per-patch feature maps). Allow up to 256 MB on receive.
+            config.maximumReceiveMessageLength = 256 * 1024 * 1024
+        }
 
         var metadata: [(String, String)] = []
         if let apiKey = configuration.apiKey {

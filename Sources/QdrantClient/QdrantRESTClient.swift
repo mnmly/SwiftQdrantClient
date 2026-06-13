@@ -34,11 +34,15 @@ public actor QdrantRESTClient: QdrantClientProtocol {
         name: String,
         vectors: VectorsConfiguration,
         sparseVectors: [String: SparseVectorParams]? = nil,
+        quantizationConfig: QuantizationConfig? = nil,
         hnswConfig: HnswConfig? = nil,
         optimizersConfig: OptimizersConfig? = nil,
+        walConfig: WalConfig? = nil,
         onDiskPayload: Bool? = nil,
         shardNumber: UInt32? = nil,
-        replicationFactor: UInt32? = nil
+        shardingMethod: ShardingMethod? = nil,
+        replicationFactor: UInt32? = nil,
+        writeConsistencyFactor: UInt32? = nil
     ) async throws -> Bool {
         var body: [String: JSONValue] = [:]
         switch vectors {
@@ -46,11 +50,15 @@ public actor QdrantRESTClient: QdrantClientProtocol {
         case .named(let map): body["vectors"] = .object(map.mapValues(\.json))
         }
         if let sparseVectors { body["sparse_vectors"] = .object(sparseVectors.mapValues(\.json)) }
+        if let quantizationConfig { body["quantization_config"] = quantizationConfig.json }
         if let hnswConfig { body["hnsw_config"] = hnswConfig.json }
         if let optimizersConfig { body["optimizers_config"] = optimizersConfig.json }
+        if let walConfig { body["wal_config"] = walConfig.json }
         if let onDiskPayload { body["on_disk_payload"] = .bool(onDiskPayload) }
         if let shardNumber { body["shard_number"] = .int(Int64(shardNumber)) }
+        if let shardingMethod { body["sharding_method"] = .string(shardingMethod.restValue) }
         if let replicationFactor { body["replication_factor"] = .int(Int64(replicationFactor)) }
+        if let writeConsistencyFactor { body["write_consistency_factor"] = .int(Int64(writeConsistencyFactor)) }
         let result = try await send(.put, "/collections/\(name)", .object(body))
         return result.boolValue ?? true
     }
@@ -126,12 +134,12 @@ public actor QdrantRESTClient: QdrantClientProtocol {
     // MARK: - Read
 
     public func retrieve(
-        collection: String, ids: [PointID], withPayload: Bool = true, withVectors: Bool = false
+        collection: String, ids: [PointID], withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [RetrievedPoint] {
         let body: JSONValue = .object([
             "ids": .array(ids.map(\.json)),
-            "with_payload": .bool(withPayload),
-            "with_vector": .bool(withVectors),
+            "with_payload": withPayload.restJSON,
+            "with_vector": withVectors.restJSON,
         ])
         let result = try await send(.post, "/collections/\(collection)/points", body)
         return (result.arrayValue ?? []).map(RESTDecode.retrieved)
@@ -139,12 +147,12 @@ public actor QdrantRESTClient: QdrantClientProtocol {
 
     public func scroll(
         collection: String, filter: Filter? = nil, limit: UInt32 = 10, offset: PointID? = nil,
-        withPayload: Bool = true, withVectors: Bool = false, orderBy: OrderBy? = nil
+        withPayload: WithPayload = true, withVectors: WithVectors = false, orderBy: OrderBy? = nil
     ) async throws -> (points: [RetrievedPoint], nextOffset: PointID?) {
         var body: [String: JSONValue] = [
             "limit": .int(Int64(limit)),
-            "with_payload": .bool(withPayload),
-            "with_vector": .bool(withVectors),
+            "with_payload": withPayload.restJSON,
+            "with_vector": withVectors.restJSON,
         ]
         if let filter { body["filter"] = filter.json }
         if let offset { body["offset"] = offset.json }
@@ -174,13 +182,13 @@ public actor QdrantRESTClient: QdrantClientProtocol {
     public func query(
         collection: String, query: Query? = nil, using: String? = nil, prefetch: [Prefetch] = [],
         filter: Filter? = nil, params: SearchParams? = nil, scoreThreshold: Float? = nil,
-        limit: UInt64 = 10, offset: UInt64 = 0, withPayload: Bool = true, withVectors: Bool = false
+        limit: UInt64 = 10, offset: UInt64 = 0, withPayload: WithPayload = true, withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         var body: [String: JSONValue] = [
             "limit": .int(Int64(limit)),
             "offset": .int(Int64(offset)),
-            "with_payload": .bool(withPayload),
-            "with_vector": .bool(withVectors),
+            "with_payload": withPayload.restJSON,
+            "with_vector": withVectors.restJSON,
         ]
         if let query { body["query"] = query.json }
         if let using { body["using"] = .string(using) }

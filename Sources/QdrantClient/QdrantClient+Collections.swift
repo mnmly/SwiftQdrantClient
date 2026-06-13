@@ -10,11 +10,15 @@ extension QdrantClient {
         name: String,
         vectors: VectorsConfiguration,
         sparseVectors: [String: SparseVectorParams]? = nil,
+        quantizationConfig: QuantizationConfig? = nil,
         hnswConfig: HnswConfig? = nil,
         optimizersConfig: OptimizersConfig? = nil,
+        walConfig: WalConfig? = nil,
         onDiskPayload: Bool? = nil,
         shardNumber: UInt32? = nil,
-        replicationFactor: UInt32? = nil
+        shardingMethod: ShardingMethod? = nil,
+        replicationFactor: UInt32? = nil,
+        writeConsistencyFactor: UInt32? = nil
     ) async throws -> Bool {
         var request = Qdrant_CreateCollection()
         request.collectionName = name
@@ -24,11 +28,15 @@ extension QdrantClient {
             sc.map = sparseVectors.mapValues(\.proto)
             request.sparseVectorsConfig = sc
         }
+        if let quantizationConfig { request.quantizationConfig = quantizationConfig.proto }
         if let hnswConfig { request.hnswConfig = hnswConfig.proto }
         if let optimizersConfig { request.optimizersConfig = optimizersConfig.proto }
+        if let walConfig { request.walConfig = walConfig.proto }
         if let onDiskPayload { request.onDiskPayload = onDiskPayload }
         if let shardNumber { request.shardNumber = shardNumber }
+        if let shardingMethod { request.shardingMethod = shardingMethod.proto }
         if let replicationFactor { request.replicationFactor = replicationFactor }
+        if let writeConsistencyFactor { request.writeConsistencyFactor = writeConsistencyFactor }
 
         let response = try await call { try await collections.create(request) }
         return response.result
@@ -47,12 +55,22 @@ extension QdrantClient {
     public func updateCollection(
         name: String,
         optimizersConfig: OptimizersConfig? = nil,
-        hnswConfig: HnswConfig? = nil
+        hnswConfig: HnswConfig? = nil,
+        quantizationConfig: QuantizationConfig? = nil
     ) async throws -> Bool {
         var request = Qdrant_UpdateCollection()
         request.collectionName = name
         if let optimizersConfig { request.optimizersConfig = optimizersConfig.proto }
         if let hnswConfig { request.hnswConfig = hnswConfig.proto }
+        if let quantizationConfig {
+            var diff = Qdrant_QuantizationConfigDiff()
+            switch quantizationConfig {
+            case .scalar(let s): diff.scalar = s.proto
+            case .product(let p): diff.product = p.proto
+            case .binary(let b): diff.binary = b.proto
+            }
+            request.quantizationConfig = diff
+        }
         let response = try await call { try await collections.update(request) }
         return response.result
     }

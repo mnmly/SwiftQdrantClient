@@ -19,8 +19,8 @@ extension QdrantClient {
         scoreThreshold: Float? = nil,
         limit: UInt64 = 10,
         offset: UInt64 = 0,
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         let request = buildQueryRequest(
             collection: collection, query: query, using: using, prefetch: prefetch,
@@ -54,8 +54,8 @@ extension QdrantClient {
         scoreThreshold: Float? = nil,
         limit: UInt64 = 10,
         groupSize: UInt64 = 3,
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) async throws -> [PointGroup] {
         var request = Qdrant_QueryPointGroups()
         request.collectionName = collection
@@ -85,8 +85,8 @@ extension QdrantClient {
         using: String? = nil,
         filter: Filter? = nil,
         limit: UInt64 = 10,
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         try await query(
             collection: collection,
@@ -103,8 +103,8 @@ extension QdrantClient {
         using: String? = nil,
         filter: Filter? = nil,
         limit: UInt64 = 10,
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) async throws -> [ScoredPoint] {
         try await query(
             collection: collection,
@@ -209,7 +209,7 @@ extension QdrantClient {
     private func buildQueryRequest(
         collection: String, query: Query?, using: String?, prefetch: [Prefetch],
         filter: Filter?, params: SearchParams?, scoreThreshold: Float?,
-        limit: UInt64, offset: UInt64, withPayload: Bool, withVectors: Bool
+        limit: UInt64, offset: UInt64, withPayload: WithPayload, withVectors: WithVectors
     ) -> Qdrant_QueryPoints {
         var request = Qdrant_QueryPoints()
         request.collectionName = collection
@@ -251,8 +251,8 @@ public struct QueryRequest: Sendable {
     public var scoreThreshold: Float?
     public var limit: UInt64
     public var offset: UInt64
-    public var withPayload: Bool
-    public var withVectors: Bool
+    public var withPayload: WithPayload
+    public var withVectors: WithVectors
 
     public init(
         query: Query? = nil,
@@ -263,8 +263,8 @@ public struct QueryRequest: Sendable {
         scoreThreshold: Float? = nil,
         limit: UInt64 = 10,
         offset: UInt64 = 0,
-        withPayload: Bool = true,
-        withVectors: Bool = false
+        withPayload: WithPayload = true,
+        withVectors: WithVectors = false
     ) {
         self.query = query
         self.using = using
