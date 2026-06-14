@@ -17,6 +17,19 @@ Plus an embeddings layer (`TextEmbedder` + `QdrantEmbeddings`) for "search by te
 Ported from qdrant-client **v1.18.0** (commit `326adef`). See
 [UPSTREAM.md](UPSTREAM.md) for provenance and the upgrade checklist.
 
+## Installation
+
+Add the package to your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/mnmly/SwiftQdrantClient.git", from: "0.1.0"),
+]
+```
+
+then add `"QdrantClient"` to your target's dependencies. (Or pin
+`branch: "main"` to track the latest.)
+
 ## Layout
 
 ```
@@ -155,4 +168,10 @@ Scripts/build_docs.sh preview         # live local preview
 # ~/.swiftly/env.sh, so `swiftly use main-snapshot` once and this just works.
 EMIT_LLMS_TXT=1 Scripts/build_docs.sh
 ```
-```
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+This is a port of [qdrant/qdrant-client](https://github.com/qdrant/qdrant-client)
+(Apache-2.0). The `.proto` files are copied verbatim from that project.

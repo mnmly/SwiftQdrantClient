@@ -1,0 +1,16 @@
+SwiftQdrantClient
+Copyright 2026 Hiroaki Yamane (https://github.com/mnmly)
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product is a Swift port of the official Qdrant Python client:
+  qdrant-client — Copyright Qdrant — https://github.com/qdrant/qdrant-client
+  Licensed under the Apache License, Version 2.0.
+Ported from qdrant-client v1.18.0 (commit 326adef); see UPSTREAM.md.
+
+The .proto files under Sources/QdrantProtos/protos/ are copied verbatim from
+qdrant-client and remain under that project's Apache-2.0 license.
+
+This product depends on (all Apache-2.0):
+  - grpc/grpc-swift           — https://github.com/grpc/grpc-swift
+  - apple/swift-protobuf      — https://github.com/apple/swift-protobuf
