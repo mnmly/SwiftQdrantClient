@@ -139,7 +139,7 @@ public actor QdrantClient {
     // MARK: - Helpers
 
     /// Run a gRPC call, mapping `GRPCStatus` into ``QdrantError``.
-    func call<T>(_ body: () async throws -> T) async throws -> T {
+    func call<T: Sendable>(_ body: () async throws -> T) async throws -> T {
         guard !isClosed else { throw QdrantError.closed }
         do {
             return try await body()
